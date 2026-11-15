@@ -421,11 +421,14 @@ class SpectraApp {
 
   async getConversationKey(convId) {
     if (!this.cachedKeys[convId]) {
-      // Derive a deterministic AES key for conversation demo stream
+      // Derive a deterministic AES-256 key for conversation demo stream.
+      // SHA-256 the seed string to get exactly 32 bytes (256 bits).
+      const seed = new TextEncoder().encode(`SPECTRA_E2EE_KEY_${convId}`);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', seed);
       const keyMaterial = await window.crypto.subtle.importKey(
         'raw',
-        new TextEncoder().encode(`SPECTRA_E2EE_KEY_${convId.replace(/-/g, '').substring(0, 32)}`),
-        { name: 'AES-GCM' },
+        hashBuffer,
+        { name: 'AES-GCM', length: 256 },
         false,
         ['encrypt', 'decrypt']
       );
