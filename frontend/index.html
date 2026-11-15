@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Spectra — Privacy-First Real-Time Communication</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            spectra: {
+              950: '#070b14',
+              900: '#0c1222',
+              850: '#11192e',
+              800: '#17223b',
+              700: '#233355',
+              cyan: '#06b6d4',
+              violet: '#8b5cf6',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar for cyber aesthetic */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #233355; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+  </style>
+</head>
+<body class="bg-spectra-950 text-slate-100 h-screen w-screen overflow-hidden flex flex-col font-sans select-none antialiased">
+
+  <!-- Top App Navigation Bar -->
+  <header class="h-14 border-b border-slate-800/80 bg-spectra-900/90 backdrop-blur px-5 flex items-center justify-between z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <div>
+        <span class="font-extrabold tracking-wider bg-gradient-to-r from-cyan-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent text-lg">SPECTRA</span>
+        <span class="text-[10px] text-cyan-400 font-mono tracking-widest ml-1 uppercase">E2EE v0.1</span>
+      </div>
+    </div>
+
+    <!-- Active Security & User Info -->
+    <div class="flex items-center gap-4">
+      <div class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Zero-Knowledge Blind Relay
+      </div>
+
+      <div class="flex items-center gap-3 pl-3 border-l border-slate-800">
+        <div class="text-right hidden sm:block">
+          <div id="userDisplayName" class="text-xs font-bold text-slate-200">User</div>
+          <div id="userUsername" class="text-[10px] text-slate-400 font-mono">@username</div>
+        </div>
+        <button id="logoutBtn" title="Logout" class="p-2 rounded-lg bg-slate-800/80 hover:bg-red-500/20 hover:text-red-400 text-slate-400 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace (Sidebar + Active Chat) -->
+  <main id="appContainer" class="flex-1 flex overflow-hidden">
+    <!-- Left Sidebar: Conversations & Contacts -->
+    <aside class="w-80 md:w-96 border-r border-slate-800/80 bg-spectra-900/40 flex flex-col">
+      <div class="p-3.5 border-b border-slate-800/80 flex items-center justify-between gap-2">
+        <div class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Conversations</div>
+        <button id="newChatBtn" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-cyan-500/20 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          New Chat
+        </button>
+      </div>
+
+      <!-- Conversations Scroll List -->
+      <div id="conversationList" class="flex-1 overflow-y-auto p-2 space-y-1">
+        <!-- Rendered dynamically -->
+      </div>
+    </aside>
+
+    <!-- Right Chat Area -->
+    <section class="flex-1 flex flex-col bg-spectra-950 relative">
+      <!-- Empty Chat State -->
+      <div id="emptyChatState" class="flex-1 flex flex-col items-center justify-center p-8 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center mb-4 text-cyan-400 shadow-xl shadow-cyan-950/40">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        </div>
+        <h3 class="text-lg font-bold text-slate-200 mb-1">Select a Conversation</h3>
+        <p class="text-xs text-slate-400 max-w-sm leading-relaxed">
+          All messages and attachments are end-to-end encrypted with zero server-side plaintext storage.
+        </p>
+      </div>
+
+      <!-- Active Chat View -->
+      <div id="activeChatView" class="flex-1 flex flex-col hidden overflow-hidden">
+        <!-- Chat Header -->
+        <div class="h-14 border-b border-slate-800/80 bg-spectra-900/60 backdrop-blur px-5 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center font-bold text-white text-sm">
+              💬
+            </div>
+            <div>
+              <div id="chatTitle" class="text-sm font-bold text-slate-100">Private Chat</div>
+              <div id="chatStatus" class="text-[11px] text-cyan-400 flex items-center gap-1 font-mono">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                E2EE Active
+              </div>
+            </div>
+          </div>
+
+          <!-- Calling & Security Controls -->
+          <div class="flex items-center gap-2">
+            <button id="chatSafetyBtn" title="Verify Safety Number" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-cyan-400 transition text-xs font-mono flex items-center gap-1">
+              <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+              <span class="hidden md:inline">Safety Number</span>
+            </button>
+            <button id="voiceCallBtn" title="WebRTC Audio Call" class="p-2 rounded-lg bg-slate-800/80 hover:bg-cyan-500/20 hover:text-cyan-400 text-slate-300 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            </button>
+            <button id="videoCallBtn" title="WebRTC Video Call" class="p-2 rounded-lg bg-slate-800/80 hover:bg-cyan-500/20 hover:text-cyan-400 text-slate-300 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Messages Timeline Scroll Area -->
+        <div id="messageList" class="flex-1 overflow-y-auto p-5">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Typing Indicator -->
+        <div id="typingIndicator" class="px-5 py-1 text-xs text-cyan-400 italic hidden font-mono">
+          Peer is typing...
+        </div>
+
+        <!-- Message Composer -->
+        <div class="p-3.5 border-t border-slate-800/80 bg-spectra-900/40">
+          <div class="flex items-center gap-2 bg-slate-800/70 border border-slate-700/60 rounded-xl px-3 py-1.5 focus-within:border-cyan-500/50 transition">
+            <button id="attachFileBtn" title="Send Client-Encrypted Attachment" class="p-1.5 text-slate-400 hover:text-cyan-400 transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+            </button>
+            <textarea id="messageInput" rows="1" placeholder="Type an encrypted message..." class="flex-1 bg-transparent border-0 text-sm text-slate-100 placeholder-slate-500 focus:outline-none resize-none py-1.5"></textarea>
+            <button id="sendMessageBtn" class="p-2 rounded-lg bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-md shadow-cyan-500/20 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Auth Screen Modal -->
+  <div id="authOverlay" class="fixed inset-0 bg-spectra-950/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div class="w-full max-w-md bg-spectra-900 border border-slate-800 p-8 rounded-2xl shadow-2xl shadow-cyan-950/50">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-cyan-500/30">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        </div>
+        <h2 class="text-2xl font-extrabold text-slate-100 tracking-tight">Project Spectra</h2>
+        <p class="text-xs text-slate-400 mt-1">High-Assurance Privacy & Real-Time Communication</p>
+      </div>
+
+      <div id="authError" class="mb-4 p-3 bg-red-950/50 border border-red-500/40 rounded-xl text-xs text-red-300 hidden"></div>
+
+      <!-- Sign In Form -->
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Username</label>
+          <input id="loginUsername" type="text" required placeholder="alice" class="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-cyan-500 transition text-slate-100 placeholder-slate-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+          <input id="loginPassword" type="password" required placeholder="••••••••••••" class="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-cyan-500 transition text-slate-100 placeholder-slate-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Device Label</label>
+          <input id="loginDeviceName" type="text" value="Primary Web Client" class="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-cyan-500 transition text-slate-100"/>
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-cyan-500/20 transition">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" class="space-y-4 hidden">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Username</label>
+          <input id="regUsername" type="text" required placeholder="bob" class="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-cyan-500 transition text-slate-100 placeholder-slate-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Display Name</label>
+          <input id="regDisplayName" type="text" required placeholder="Bob Marley" class="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-cyan-500 transition text-slate-100 placeholder-slate-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+          <input id="regPassword" type="password" required minlength="10" placeholder="Min 10 characters" class="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-cyan-500 transition text-slate-100 placeholder-slate-500"/>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="block text-xs font-semibold text-slate-300">Invite Code</label>
+            <span class="text-[10px] text-cyan-400 font-mono">Genesis: SPECTRA-GENESIS-2026</span>
+          </div>
+          <input id="regInviteCode" type="text" required value="SPECTRA-GENESIS-2026" class="w-full px-3 py-2 bg-slate-800/80 border border-cyan-500/50 rounded-xl text-sm focus:outline-none focus:border-cyan-400 font-mono text-cyan-200 transition"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Device Label</label>
+          <input id="regDeviceName" type="text" value="Primary Web Client" class="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-cyan-500 transition text-slate-100"/>
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition">
+          Create Encrypted Account
+        </button>
+      </form>
+
+      <div class="mt-6 text-center">
+        <button id="authToggleBtn" class="text-xs text-cyan-400 hover:underline">
+          Don't have an account? Create one with invite
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Start Chat Modal -->
+  <div id="searchModal" class="fixed inset-0 bg-spectra-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-40 hidden">
+    <div class="w-full max-w-md bg-spectra-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-slate-100">Search User Directory</h3>
+        <button id="closeSearchModal" class="text-slate-400 hover:text-slate-200 text-sm">✕</button>
+      </div>
+      <div class="p-4 border-b border-slate-800/80">
+        <input id="searchInput" type="text" placeholder="Type username or name..." class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"/>
+      </div>
+      <div id="searchResults" class="p-2 overflow-y-auto flex-1 space-y-1">
+        <!-- Rendered search results -->
+      </div>
+    </div>
+  </div>
+
+  <!-- WebRTC Active Call Overlay Modal -->
+  <div id="callOverlay" class="fixed inset-0 bg-spectra-950/95 backdrop-blur-lg flex flex-col items-center justify-between p-6 z-50 hidden">
+    <!-- Call Top Status -->
+    <div class="text-center mt-4">
+      <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-cyan-500/30 text-2xl">
+        📞
+      </div>
+      <h3 id="callRemoteName" class="text-xl font-bold text-slate-100">Calling...</h3>
+      <div id="callStatusText" class="text-xs text-cyan-400 font-mono mt-1">Connecting DTLS-SRTP Stream...</div>
+      <div id="callTimer" class="text-xs text-slate-400 font-mono mt-1"></div>
+    </div>
+
+    <!-- Video Streams Container -->
+    <div class="relative w-full max-w-2xl aspect-video bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl my-4 flex items-center justify-center">
+      <video id="remoteVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+      <video id="localVideo" autoplay playsinline muted class="absolute bottom-4 right-4 w-32 aspect-video bg-black rounded-xl border border-slate-700 object-cover shadow-lg"></video>
+    </div>
+
+    <!-- Incoming Call Controls -->
+    <div id="incomingActions" class="flex items-center gap-6 mb-6 hidden">
+      <button id="rejectCallBtn" class="w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-600/30 transition">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <button id="acceptCallBtn" class="w-16 h-16 rounded-full bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-600/30 transition">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+      </button>
+    </div>
+
+    <!-- Active Call Dock Controls -->
+    <div id="activeCallActions" class="flex items-center gap-4 mb-6">
+      <button id="toggleMuteBtn" title="Mute Microphone" class="p-4 rounded-full bg-slate-800 hover:bg-slate-700 text-white transition shadow">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+      </button>
+      <button id="toggleVideoBtn" title="Toggle Camera" class="p-4 rounded-full bg-slate-800 hover:bg-slate-700 text-white transition shadow">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+      </button>
+      <button id="endCallBtn" title="End Call" class="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white transition shadow-lg shadow-red-600/30">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.684A1 1 0 008.28 3H5z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Safety Number Fingerprint Modal -->
+  <div id="safetyModal" class="fixed inset-0 bg-spectra-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-40 hidden">
+    <div class="w-full max-w-lg bg-spectra-900 border border-slate-800 rounded-2xl shadow-2xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+          <svg class="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          Cryptographic Safety Number
+        </h3>
+        <button id="closeSafetyModal" class="text-slate-400 hover:text-slate-200">✕</button>
+      </div>
+      <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+        Compare this 60-digit fingerprint with your contact out-of-band to mathematically confirm end-to-end encryption without server manipulation.
+      </p>
+      <div id="safetyNumberText" class="p-4 bg-slate-950 border border-slate-800 rounded-xl font-mono text-center text-cyan-300 text-sm tracking-widest leading-loose select-all">
+        Generating safety number...
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript Module -->
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>
