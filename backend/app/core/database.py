@@ -1,7 +1,6 @@
 import uuid
 from typing import AsyncGenerator
-from sqlalchemy import String, TypeDecorator
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy import UUID
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -11,38 +10,8 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import settings
 
-
-class GUID(TypeDecorator):
-    """Platform-independent GUID type.
-    Uses PostgreSQL's native UUID type, otherwise uses String(36).
-    """
-    impl = String(36)
-    cache_ok = True
-
-    def load_dialect_impl(self, dialect):
-        if dialect.name == "postgresql":
-            return dialect.type_descriptor(PG_UUID(as_uuid=True))
-        else:
-            return dialect.type_descriptor(String(36))
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return value
-        elif dialect.name == "postgresql":
-            return str(value)
-        else:
-            if isinstance(value, uuid.UUID):
-                return str(value)
-            else:
-                return str(uuid.UUID(str(value)))
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return value
-        else:
-            if not isinstance(value, uuid.UUID):
-                return uuid.UUID(str(value))
-            return value
+# Built-in SQLAlchemy 2.0 UUID type supporting native Postgres UUID & SQLite
+GUID = UUID(as_uuid=True)
 
 
 class Base(DeclarativeBase):

@@ -8,7 +8,6 @@ Create Date: 2026-11-15 23:45:00.000000
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision: str = "0001_initial_schema"
 down_revision: Union[str, None] = None
@@ -20,12 +19,12 @@ def upgrade() -> None:
     # 1. users
     op.create_table(
         "users",
-        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("id", sa.UUID(), primary_key=True),
         sa.Column("username", sa.String(32), nullable=False, unique=True),
         sa.Column("password_hash", sa.String(255), nullable=False),
         sa.Column("display_name", sa.String(64), nullable=False),
         sa.Column("status", sa.String(16), nullable=False, server_default="active"),
-        sa.Column("invite_code_id", sa.String(36), nullable=True),
+        sa.Column("invite_code_id", sa.UUID(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
@@ -35,10 +34,10 @@ def upgrade() -> None:
     # 2. invites
     op.create_table(
         "invites",
-        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("id", sa.UUID(), primary_key=True),
         sa.Column("code", sa.String(32), nullable=False, unique=True),
-        sa.Column("creator_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("used_by_id", sa.String(36), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("creator_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("used_by_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("max_uses", sa.Integer(), nullable=False, server_default="1"),
         sa.Column("uses_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
@@ -49,8 +48,8 @@ def upgrade() -> None:
     # 3. devices
     op.create_table(
         "devices",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("user_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("id", sa.UUID(), primary_key=True),
+        sa.Column("user_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("device_identifier", sa.String(64), nullable=False),
         sa.Column("device_name", sa.String(64), nullable=False),
         sa.Column("client_platform", sa.String(32), nullable=False, server_default="web"),
@@ -65,9 +64,9 @@ def upgrade() -> None:
     # 4. sessions
     op.create_table(
         "sessions",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("user_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("device_id", sa.String(36), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("id", sa.UUID(), primary_key=True),
+        sa.Column("user_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("device_id", sa.UUID(), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False),
         sa.Column("refresh_token_hash", sa.String(64), nullable=False, unique=True),
         sa.Column("previous_refresh_token_hash", sa.String(64), nullable=True),
         sa.Column("user_agent", sa.Text(), nullable=True),
@@ -81,8 +80,8 @@ def upgrade() -> None:
     # 5. device_prekey_bundles
     op.create_table(
         "device_prekey_bundles",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("device_id", sa.String(36), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False, unique=True),
+        sa.Column("id", sa.UUID(), primary_key=True),
+        sa.Column("device_id", sa.UUID(), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False, unique=True),
         sa.Column("identity_key_pub", sa.String(64), nullable=False),
         sa.Column("signed_prekey_pub", sa.String(64), nullable=False),
         sa.Column("signed_prekey_sig", sa.String(128), nullable=False),
@@ -95,8 +94,8 @@ def upgrade() -> None:
     # 6. device_one_time_prekeys
     op.create_table(
         "device_one_time_prekeys",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("device_id", sa.String(36), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("id", sa.UUID(), primary_key=True),
+        sa.Column("device_id", sa.UUID(), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False),
         sa.Column("key_id", sa.Integer(), nullable=False),
         sa.Column("public_key", sa.String(64), nullable=False),
         sa.Column("is_used", sa.Boolean(), nullable=False, server_default=sa.false()),
@@ -108,11 +107,11 @@ def upgrade() -> None:
     # 7. conversations
     op.create_table(
         "conversations",
-        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("id", sa.UUID(), primary_key=True),
         sa.Column("type", sa.String(16), nullable=False, server_default="direct"),
         sa.Column("title", sa.String(128), nullable=True),
         sa.Column("avatar_hash", sa.String(64), nullable=True),
-        sa.Column("created_by_id", sa.String(36), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("created_by_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("last_sequence_id", sa.BigInteger(), nullable=False, server_default="0"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
@@ -121,9 +120,9 @@ def upgrade() -> None:
     # 8. conversation_members
     op.create_table(
         "conversation_members",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("conversation_id", sa.String(36), sa.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("user_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("id", sa.UUID(), primary_key=True),
+        sa.Column("conversation_id", sa.UUID(), sa.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("user_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("role", sa.String(16), nullable=False, server_default="member"),
         sa.Column("last_read_seq", sa.BigInteger(), nullable=False, server_default="0"),
         sa.Column("muted_until", sa.DateTime(timezone=True), nullable=True),
@@ -136,10 +135,10 @@ def upgrade() -> None:
     # 9. message_envelopes
     op.create_table(
         "message_envelopes",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("conversation_id", sa.String(36), sa.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("sender_device_id", sa.String(36), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("recipient_device_id", sa.String(36), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("id", sa.UUID(), primary_key=True),
+        sa.Column("conversation_id", sa.UUID(), sa.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("sender_device_id", sa.UUID(), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("recipient_device_id", sa.UUID(), sa.ForeignKey("devices.id", ondelete="CASCADE"), nullable=False),
         sa.Column("sequence_id", sa.BigInteger(), nullable=False),
         sa.Column("envelope_type", sa.String(24), nullable=False, server_default="olm_msg"),
         sa.Column("ciphertext", sa.Text(), nullable=False),
@@ -157,8 +156,8 @@ def upgrade() -> None:
     # 10. attachments
     op.create_table(
         "attachments",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("uploader_user_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("id", sa.UUID(), primary_key=True),
+        sa.Column("uploader_user_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("file_path_hash", sa.String(64), nullable=False, unique=True),
         sa.Column("file_size_bytes", sa.BigInteger(), nullable=False),
         sa.Column("mime_type", sa.String(128), nullable=False, server_default="application/octet-stream"),
@@ -170,9 +169,9 @@ def upgrade() -> None:
     # 11. calls
     op.create_table(
         "calls",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("conversation_id", sa.String(36), sa.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("initiator_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("id", sa.UUID(), primary_key=True),
+        sa.Column("conversation_id", sa.UUID(), sa.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("initiator_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("call_type", sa.String(16), nullable=False, server_default="audio"),
         sa.Column("status", sa.String(16), nullable=False, server_default="ringing"),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=False),
@@ -184,10 +183,10 @@ def upgrade() -> None:
     # 12. call_participants
     op.create_table(
         "call_participants",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("call_id", sa.String(36), sa.ForeignKey("calls.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("user_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("device_id", sa.String(36), sa.ForeignKey("devices.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("id", sa.UUID(), primary_key=True),
+        sa.Column("call_id", sa.UUID(), sa.ForeignKey("calls.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("user_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("device_id", sa.UUID(), sa.ForeignKey("devices.id", ondelete="SET NULL"), nullable=True),
         sa.Column("status", sa.String(16), nullable=False, server_default="invited"),
         sa.Column("joined_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("left_at", sa.DateTime(timezone=True), nullable=True),

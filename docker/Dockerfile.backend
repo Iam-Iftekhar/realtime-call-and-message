@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Project Spectra Backend (FastAPI)
-FROM python:3.12-slim AS builder
+FROM docker.io/library/python:3.12-slim AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Final runtime image
-FROM python:3.12-slim AS runner
+FROM docker.io/library/python:3.12-slim AS runner
 
 WORKDIR /app
 
