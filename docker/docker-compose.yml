@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: spectra_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spectra_db
+      POSTGRES_USER: spectra
+      POSTGRES_PASSWORD: spectra_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spectra -d spectra_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: spectra_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  coturn:
+    image: coturn/coturn:4.6-alpine
+    container_name: spectra_coturn
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./coturn.conf:/etc/coturn/turnserver.conf:ro
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: spectra_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://spectra:spectra_password@postgres:5432/spectra_db
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-spectra-super-secret-production-key-replace-me-32chars}
+      COTURN_STATIC_SECRET: ${COTURN_STATIC_SECRET:-spectra-coturn-shared-hmac-secret-key-32b}
+      INVITE_REQUIRED: "true"
+    volumes:
+      - ../backend:/app
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+ENV/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment & Secrets
+.env
+*.local.env
+
+# Databases & Local Storage
+*.db
+*.sqlite
+*.sqlite3
+data/
+postgres_data/
+redis_data/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# Node / Frontend builds
+node_modules/
+dist/
+.parcel-cache/
